@@ -536,12 +536,21 @@
     hintEl.textContent = 'Transcribiendo…';
     recordBtn.disabled = true;
 
+    // idioma: el que haya puesto el usuario, o si no, el del navegador
+    const browserLang = (navigator.language || 'es').split('-')[0];
+    const language = langInput.value.trim() || browserLang;
+
+    // prompt: el que haya puesto el usuario, o si no, uno pensado para
+    // notas de voz espontáneas de una sola persona contando su día
+    const suggestedPrompt = 'Transcripción informal de una nota de voz personal, alguien contando cómo estuvo su día. Conservar muletillas y coloquialismos.';
+    const prompt = promptInput.value.trim() || suggestedPrompt;
+
     const form = new FormData();
     form.append('file', blob, 'audio.' + extForMime(mime));
     form.append('model', modelSel.value);
     form.append('response_format', 'verbose_json');
-    if(langInput.value.trim()) form.append('language', langInput.value.trim());
-    if(promptInput.value.trim()) form.append('prompt', promptInput.value.trim());
+    form.append('language', language);
+    form.append('prompt', prompt);
 
     const t0 = performance.now();
     try{
