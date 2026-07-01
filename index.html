@@ -560,7 +560,7 @@
 
       if(!res.ok){
         const msg = (data && (data.error?.message || data.error)) || ('Error HTTP ' + res.status);
-        setStatus('Falló la transcripción: ' + msg, 'error');
+        setStatus('Falló la transcripción: ' + JSON.stringify(msg), 'error');
         hintEl.textContent = 'Tocá para grabar.';
         recordBtn.disabled = false;
         return;
