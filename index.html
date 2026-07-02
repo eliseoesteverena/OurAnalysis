@@ -304,7 +304,14 @@
   <details class="panel">
     <summary>Parámetros de transcripción</summary>
     <div class="settings-body">
-      <div class="row2">
+      <div class="field">
+        <label for="engineSel">Motor de transcripción</label>
+        <select id="engineSel">
+          <option value="groq" selected>Groq (Whisper)</option>
+          <option value="gemini">Gemini 3.1 Flash-Lite</option>
+        </select>
+      </div>
+      <div class="row2" id="modelRow">
         <div class="field">
           <label for="modelSel">Modelo</label>
           <select id="modelSel">
@@ -349,10 +356,24 @@
   const statusBox = document.getElementById('statusBox');
   const resultBody = document.getElementById('resultBody');
   const resultMeta = document.getElementById('resultMeta');
+  const engineSel = document.getElementById('engineSel');
+  const modelRow = document.getElementById('modelRow');
   const modelSel = document.getElementById('modelSel');
   const modelBadge = document.getElementById('modelBadge');
   const langInput = document.getElementById('langInput');
   const promptInput = document.getElementById('promptInput');
+
+  const ENGINES = {
+    groq:   { endpoint: '/api/transcribe',        badge: () => modelSel.value },
+    gemini: { endpoint: '/api/transcribe-gemini', badge: () => 'gemini-3.1-flash-lite' }
+  };
+
+  function refreshBadgeAndFields(){
+    const engine = engineSel.value;
+    modelBadge.textContent = ENGINES[engine].badge();
+    modelRow.style.display = engine === 'groq' ? 'grid' : 'none';
+  }
+  engineSel.addEventListener('change', refreshBadgeAndFields);
 
   const MAX_SECONDS = 120; // tope para no mandar audios enormes desde mobile data
   const BAR_COUNT = 24;
@@ -365,9 +386,8 @@
   }
   const bars = Array.from(meterEl.querySelectorAll('.bar'));
 
-  modelSel.addEventListener('change', () => {
-    modelBadge.textContent = modelSel.value;
-  });
+  modelSel.addEventListener('change', refreshBadgeAndFields);
+  refreshBadgeAndFields();
 
   let mediaStream = null;
   let mediaRecorder = null;
@@ -532,7 +552,10 @@
   }
 
   async function sendToTranscribe(blob, mime){
-    setStatus('Transcribiendo con Groq (' + modelSel.value + ')…', 'info');
+    const engine = engineSel.value;
+    const endpoint = ENGINES[engine].endpoint;
+
+    setStatus('Transcribiendo con ' + (engine === 'groq' ? 'Groq (' + modelSel.value + ')' : 'Gemini') + '…', 'info');
     hintEl.textContent = 'Transcribiendo…';
     recordBtn.disabled = true;
 
@@ -542,25 +565,27 @@
 
     // prompt: el que haya puesto el usuario, o si no, uno pensado para
     // notas de voz espontáneas de una sola persona contando su día
-    const suggestedPrompt = 'Transcripción informal de una nota de voz personal, alguien contando cómo estuvo su día, como se siente y demás echos que considera oportuno decir. Conservar muletillas y coloquialismos.';
+    const suggestedPrompt = 'Transcripción informal de una nota de voz personal, alguien contando cómo estuvo su día. Conservar muletillas y coloquialismos.';
     const prompt = promptInput.value.trim() || suggestedPrompt;
 
     const form = new FormData();
     form.append('file', blob, 'audio.' + extForMime(mime));
-    form.append('model', modelSel.value);
-    form.append('response_format', 'verbose_json');
     form.append('language', language);
     form.append('prompt', prompt);
+    if(engine === 'groq'){
+      form.append('model', modelSel.value);
+      form.append('response_format', 'verbose_json');
+    }
 
     const t0 = performance.now();
     try{
-      const res = await fetch('/api/transcribe', { method: 'POST', body: form });
+      const res = await fetch(endpoint, { method: 'POST', body: form });
       const elapsedMs = Math.round(performance.now() - t0);
       const data = await res.json().catch(() => null);
 
       if(!res.ok){
         const msg = (data && (data.error?.message || data.error)) || ('Error HTTP ' + res.status);
-        setStatus('Falló la transcripción: ' + JSON.stringify(msg), 'error');
+        setStatus('Falló la transcripción: ' + msg, 'error');
         hintEl.textContent = 'Tocá para grabar.';
         recordBtn.disabled = false;
         return;
@@ -569,7 +594,7 @@
       renderResult(data, blob.size, elapsedMs);
       setStatus('');
     }catch(err){
-      setStatus('Error de red al llamar a /api/transcribe: ' + err.message, 'error');
+      setStatus('Error de red al llamar a ' + endpoint + ': ' + err.message, 'error');
     }finally{
       hintEl.textContent = 'Tocá para grabar.';
       recordBtn.disabled = false;
