@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Groq STT · Banco de pruebas</title>
+<title>Gemini STT · Banco de pruebas</title>
 <style>
   :root{
     --bg: #14120F;
@@ -14,8 +14,6 @@
     --muted: #8C8578;
     --amber: #E8A33D;
     --amber-dim: #7A5A26;
-    --good: #6FCF97;
-    --warn: #E5A94A;
     --bad: #E5484D;
     --mono: "SF Mono", "Roboto Mono", "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
     --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
@@ -191,7 +189,6 @@
     font-family: var(--sans);
   }
   select:focus, input:focus{ outline: 2px solid var(--amber); outline-offset: 1px; }
-  .row2{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
   /* ---- status / errors ---- */
   .status{
@@ -225,40 +222,6 @@
     white-space: pre-wrap;
     word-break: break-word;
   }
-  .transcript .seg{
-    border-bottom: 2px solid transparent;
-    padding-bottom: 1px;
-  }
-  .transcript .seg.good{ border-color: rgba(111,207,151,0.45); }
-  .transcript .seg.warn{ border-color: rgba(229,169,74,0.55); }
-  .transcript .seg.bad{ border-color: rgba(229,72,77,0.6); }
-  .legend{
-    display:flex; gap: 14px; flex-wrap: wrap;
-    font-family: var(--mono); font-size: 10.5px; color: var(--muted);
-    margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hairline);
-  }
-  .legend span{ display:inline-flex; align-items:center; gap:5px; }
-  .legend i{ width:9px; height:9px; border-radius:2px; display:inline-block; }
-  .legend .lg-good{ background: var(--good); }
-  .legend .lg-warn{ background: var(--warn); }
-  .legend .lg-bad{ background: var(--bad); }
-
-  table.segtable{
-    width:100%;
-    border-collapse: collapse;
-    font-family: var(--mono);
-    font-size: 11.5px;
-    margin-top: 10px;
-  }
-  table.segtable th, table.segtable td{
-    text-align: left;
-    padding: 7px 6px;
-    border-bottom: 1px solid var(--hairline);
-    color: var(--muted);
-  }
-  table.segtable td.txt{ color: var(--text); }
-  table.segtable td.num{ font-variant-numeric: tabular-nums; white-space:nowrap; }
-  .dot-flag{ display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px; }
 
   .empty{
     color: var(--muted);
@@ -286,8 +249,8 @@
 <div class="wrap">
 
   <header>
-    <h1>Groq<span>·</span>STT</h1>
-    <span class="badge" id="modelBadge">whisper-large-v3-turbo</span>
+    <h1>Gemini<span>·</span>STT</h1>
+    <span class="badge">gemini-3.1-flash-lite</span>
   </header>
 
   <div id="statusBox" class="status"></div>
@@ -305,24 +268,8 @@
     <summary>Parámetros de transcripción</summary>
     <div class="settings-body">
       <div class="field">
-        <label for="engineSel">Motor de transcripción</label>
-        <select id="engineSel">
-          <option value="groq" selected>Groq (Whisper)</option>
-          <option value="gemini">Gemini 3.1 Flash-Lite</option>
-        </select>
-      </div>
-      <div class="row2" id="modelRow">
-        <div class="field">
-          <label for="modelSel">Modelo</label>
-          <select id="modelSel">
-            <option value="whisper-large-v3-turbo" selected>large-v3-turbo (rápido)</option>
-            <option value="whisper-large-v3">large-v3 (más preciso)</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="langInput">Idioma (ISO-639-1)</label>
-          <input type="text" id="langInput" placeholder="es (opcional)" maxlength="5" />
-        </div>
+        <label for="langInput">Idioma (ISO-639-1)</label>
+        <input type="text" id="langInput" placeholder="es (opcional)" maxlength="5" />
       </div>
       <div class="field">
         <label for="promptInput">Prompt de contexto (opcional)</label>
@@ -342,7 +289,7 @@
   </div>
 
   <footer>
-    Audio procesado vía función serverless propia · la API key de Groq<br/>
+    Audio procesado vía función serverless propia · la API key de Gemini<br/>
     nunca se expone en el navegador.
   </footer>
 </div>
@@ -356,24 +303,8 @@
   const statusBox = document.getElementById('statusBox');
   const resultBody = document.getElementById('resultBody');
   const resultMeta = document.getElementById('resultMeta');
-  const engineSel = document.getElementById('engineSel');
-  const modelRow = document.getElementById('modelRow');
-  const modelSel = document.getElementById('modelSel');
-  const modelBadge = document.getElementById('modelBadge');
   const langInput = document.getElementById('langInput');
   const promptInput = document.getElementById('promptInput');
-
-  const ENGINES = {
-    groq:   { endpoint: '/api/transcribe',        badge: () => modelSel.value },
-    gemini: { endpoint: '/api/transcribe-gemini', badge: () => 'gemini-3.1-flash-lite' }
-  };
-
-  function refreshBadgeAndFields(){
-    const engine = engineSel.value;
-    modelBadge.textContent = ENGINES[engine].badge();
-    modelRow.style.display = engine === 'groq' ? 'grid' : 'none';
-  }
-  engineSel.addEventListener('change', refreshBadgeAndFields);
 
   const MAX_SECONDS = 120; // tope para no mandar audios enormes desde mobile data
   const BAR_COUNT = 24;
@@ -385,9 +316,6 @@
     meterEl.appendChild(b);
   }
   const bars = Array.from(meterEl.querySelectorAll('.bar'));
-
-  modelSel.addEventListener('change', refreshBadgeAndFields);
-  refreshBadgeAndFields();
 
   let mediaStream = null;
   let mediaRecorder = null;
@@ -552,10 +480,7 @@
   }
 
   async function sendToTranscribe(blob, mime){
-    const engine = engineSel.value;
-    const endpoint = ENGINES[engine].endpoint;
-
-    setStatus('Transcribiendo con ' + (engine === 'groq' ? 'Groq (' + modelSel.value + ')' : 'Gemini') + '…', 'info');
+    setStatus('Transcribiendo con Gemini…', 'info');
     hintEl.textContent = 'Transcribiendo…';
     recordBtn.disabled = true;
 
@@ -572,14 +497,10 @@
     form.append('file', blob, 'audio.' + extForMime(mime));
     form.append('language', language);
     form.append('prompt', prompt);
-    if(engine === 'groq'){
-      form.append('model', modelSel.value);
-      form.append('response_format', 'verbose_json');
-    }
 
     const t0 = performance.now();
     try{
-      const res = await fetch(endpoint, { method: 'POST', body: form });
+      const res = await fetch('/api/transcribe-gemini', { method: 'POST', body: form });
       const elapsedMs = Math.round(performance.now() - t0);
       const data = await res.json().catch(() => null);
 
@@ -594,62 +515,22 @@
       renderResult(data, blob.size, elapsedMs);
       setStatus('');
     }catch(err){
-      setStatus('Error de red al llamar a ' + endpoint + ': ' + err.message, 'error');
+      setStatus('Error de red al llamar a /api/transcribe-gemini: ' + err.message, 'error');
     }finally{
       hintEl.textContent = 'Tocá para grabar.';
       recordBtn.disabled = false;
     }
   }
 
-  function confidenceClass(seg){
-    // heurística basada en avg_logprob y no_speech_prob según la doc de Groq
-    if(seg.no_speech_prob > 0.6 || seg.avg_logprob < -0.7) return 'bad';
-    if(seg.no_speech_prob > 0.3 || seg.avg_logprob < -0.35) return 'warn';
-    return 'good';
-  }
-
   function renderResult(data, bytes, elapsedMs){
     const kb = (bytes/1024).toFixed(0);
     resultMeta.textContent = kb + ' KB · ' + elapsedMs + ' ms';
 
-    const segments = Array.isArray(data.segments) ? data.segments : null;
-
-    let html = '';
-    if(segments && segments.length){
-      html += '<div class="transcript">';
-      segments.forEach(seg => {
-        const cls = confidenceClass(seg);
-        html += `<span class="seg ${cls}">${escapeHtml(seg.text.trim())}</span> `;
-      });
-      html += '</div>';
-
-      html += `<div class="legend">
-        <span><i class="lg-good"></i>confianza alta</span>
-        <span><i class="lg-warn"></i>revisar</span>
-        <span><i class="lg-bad"></i>baja confianza / posible silencio</span>
-      </div>`;
-
-      html += '<table class="segtable"><thead><tr>' +
-        '<th></th><th>t</th><th>logprob</th><th>no_speech</th><th>compr.</th></tr></thead><tbody>';
-      segments.forEach(seg => {
-        const cls = confidenceClass(seg);
-        const color = cls === 'bad' ? 'var(--bad)' : (cls === 'warn' ? 'var(--warn)' : 'var(--good)');
-        html += `<tr>
-          <td><span class="dot-flag" style="background:${color}"></span></td>
-          <td class="num">${seg.start.toFixed(1)}–${seg.end.toFixed(1)}s</td>
-          <td class="num">${seg.avg_logprob.toFixed(3)}</td>
-          <td class="num">${seg.no_speech_prob.toFixed(3)}</td>
-          <td class="num">${seg.compression_ratio.toFixed(2)}</td>
-        </tr>`;
-      });
-      html += '</tbody></table>';
-    } else if(data.text){
-      html += `<div class="transcript">${escapeHtml(data.text)}</div>`;
+    if(data.text){
+      resultBody.innerHTML = `<div class="transcript">${escapeHtml(data.text)}</div>`;
     } else {
-      html += '<p class="empty">La respuesta no incluyó texto.</p>';
+      resultBody.innerHTML = '<p class="empty">La respuesta no incluyó texto.</p>';
     }
-
-    resultBody.innerHTML = html;
   }
 
   function escapeHtml(s){
