@@ -1,9 +1,12 @@
 // Cloudflare Pages Function
 // Route: POST /api/transcribe-gemini
 //
-// Transcribe audio usando Gemini 3.1 Flash-Lite (generateContent con audio
-// inline en base64). La API key se lee del Secret env.GEMINI_API_KEY y
-// nunca se expone al cliente.
+// Recibe una nota de voz y devuelve el CONTENIDO de una entrada de diario
+// de autoanálisis: un resumen breve y fiel, en tercera persona, de lo que
+// la persona expresó (hechos, decisiones, pensamientos, emociones).
+// No es una transcripción literal palabra por palabra.
+//
+// La API key se lee del Secret env.GEMINI_API_KEY y nunca se expone al cliente.
 //
 // Configurar el secret con:
 //   npx wrangler pages secret put GEMINI_API_KEY
@@ -32,12 +35,17 @@ export async function onRequestPost(context) {
     return json({ error: { message: "Falta el archivo de audio ('file')." } }, 400);
   }
 
-  const language = form.get("language");
-  const stylePrompt = form.get("prompt");
+  const language = (form.get("language") || "es").toString();
 
-  let promptText = "Generate a transcript of the audio.";
-  if (stylePrompt) promptText += " " + stylePrompt;
-  if (language) promptText += ` Respond in the language with ISO-639-1 code "${language}".`;
+  const promptText = `Sos un asistente de journaling. Vas a escuchar una nota de voz en la que una persona habla libremente y en primera persona sobre su día, sus pensamientos o sus emociones, como si estuviera pensando en voz alta para sí misma.
+
+Tu tarea es escribir el CONTENIDO de una entrada de diario de autoanálisis a partir de eso, seguido estas reglas:
+- Escribí en tercera persona (por ejemplo "El usuario comentó que...", "Se decidió...", "Notó que sentía...").
+- Sé fiel a lo dicho: no inventes ni interpretes de más lo que la persona no haya expresado.
+- Conservá los hechos, decisiones, pensamientos y emociones relevantes, incluso si hay varios temas en el mismo audio.
+- Podés usar más de un párrafo breve si se hablaron temas distintos, pero no uses encabezados, títulos, listas ni formato Markdown: solo texto plano en párrafos.
+- Escribí en el idioma con código ISO-639-1 "${language}", sin importar en qué idioma haya hablado la persona.
+- Si el audio no tiene contenido entendible (silencio, ruido, etc.), respondé únicamente con: [Audio sin contenido reconocible]`;
 
   let base64Audio;
   try {
@@ -87,14 +95,12 @@ export async function onRequestPost(context) {
     return json({ error: { message: msg } }, geminiResponse.status);
   }
 
-  const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("") || "";
+  const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text || "").join("").trim() || "";
 
   if (!text) {
     return json({ error: { message: "Gemini no devolvió texto (posible bloqueo de safety filters)." } }, 502);
   }
 
-  // Formato compatible con el render del cliente: { text }
-  // Gemini no expone metadata por segmento (avg_logprob, no_speech_prob, etc.)
   return json({ text, model: GEMINI_MODEL });
 }
 
