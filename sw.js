@@ -1,4 +1,4 @@
-const CACHE_NAME = "our-analysis-v1";
+const CACHE_NAME = "our-analysis-v2";
 
 const APP_SHELL = [
   "/",
@@ -7,6 +7,8 @@ const APP_SHELL = [
   "/js/app.js",
   "/js/storage.js",
   "/js/recorder.js",
+  "/js/export.js",
+  "/js/instructivo.js",
   "/manifest.webmanifest",
   "/icons/icon.svg",
   "/icons/icon-192.png",

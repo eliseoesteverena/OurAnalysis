@@ -28,6 +28,7 @@
   <p class="drawer-brand">Our Analysis</p>
   <a href="#/" class="drawer-link" data-route="/">Home</a>
   <a href="#/historial" class="drawer-link" data-route="/historial">Historial</a>
+  <a href="#/instructivo" class="drawer-link" data-route="/instructivo">Instructivo</a>
   <a href="#/config" class="drawer-link" data-route="/config">Configuración</a>
 </nav>
 
@@ -65,7 +66,31 @@
       <p class="panel-title" style="margin:0;">Historial</p>
       <button id="openExportBtn" class="btn-ghost">Exportar .txt</button>
     </div>
+    <a href="#/instructivo" class="text-link">¿Cómo sacarle provecho?</a>
     <div id="historialList"></div>
+  </section>
+
+  <!-- ---------------- INSTRUCTIVO ---------------- -->
+  <section id="view-instructivo" class="view" hidden>
+    <p class="panel-title">Instructivo</p>
+
+    <div class="panel">
+      <p>Exportá tu historial (pestaña Historial → <strong>Exportar .txt</strong>) eligiendo el rango que quieras, por ejemplo la última semana. Ese archivo es tu registro literal: todo lo que dijiste, ordenado por día y hora.</p>
+      <p>Después, adjuntá ese .txt a un asistente de IA (Claude, ChatGPT, Gemini, el que uses) junto con el prompt de abajo. La idea es conseguir una lectura objetiva de tu propia semana — patrones, decisiones concretas y aprendizajes que cuesta ver cuando te estás releyendo a vos mismo.</p>
+      <p class="field-hint">Nada de esto sale de la app: vos decidís cuándo exportar, a qué asistente se lo mandás, y qué hacer con la respuesta.</p>
+    </div>
+
+    <div class="panel">
+      <p class="panel-title">Prompt sugerido</p>
+      <pre id="promptDisplay" class="prompt-block"></pre>
+      <textarea id="promptEdit" class="entry-textarea prompt-block" hidden></textarea>
+      <div class="entry-actions">
+        <button id="copyPromptBtn" class="btn-ghost">Copiar prompt</button>
+        <button id="editPromptBtn" class="btn-ghost">Editar prompt</button>
+        <button id="savePromptBtn" class="btn-ghost" hidden>Guardar cambios</button>
+        <button id="resetPromptBtn" class="btn-ghost btn-danger" hidden>Restaurar original</button>
+      </div>
+    </div>
   </section>
 
   <!-- ---------------- CONFIGURACIÓN ---------------- -->
@@ -144,6 +169,7 @@
 <script src="js/storage.js"></script>
 <script src="js/recorder.js"></script>
 <script src="js/export.js"></script>
+<script src="js/instructivo.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

@@ -28,6 +28,7 @@
   const views = {
     "/": document.getElementById("view-home"),
     "/historial": document.getElementById("view-historial"),
+    "/instructivo": document.getElementById("view-instructivo"),
     "/config": document.getElementById("view-config"),
   };
 
