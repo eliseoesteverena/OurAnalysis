@@ -75,6 +75,10 @@ const OA = (() => {
     };
   }
 
+  function todayDate() {
+    return localDateParts(new Date()).date;
+  }
+
   // ---- settings ----
 
   function getSettings() {
@@ -195,5 +199,6 @@ const OA = (() => {
     deleteEntry,
     renderDayMarkdown,
     clearAll,
+    todayDate,
   };
 })();

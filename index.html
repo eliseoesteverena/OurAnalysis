@@ -23,7 +23,7 @@
   <h1 class="topbar-title">Our Analysis</h1>
 </header>
 
-<div id="drawerOverlay" class="drawer-overlay" hidden></div>
+<div id="drawerOverlay" class="overlay" hidden></div>
 <nav id="drawer" class="drawer" aria-label="Navegación principal">
   <p class="drawer-brand">Our Analysis</p>
   <a href="#/" class="drawer-link" data-route="/">Home</a>
@@ -61,7 +61,10 @@
 
   <!-- ---------------- HISTORIAL ---------------- -->
   <section id="view-historial" class="view" hidden>
-    <p class="panel-title">Historial</p>
+    <div class="view-header">
+      <p class="panel-title" style="margin:0;">Historial</p>
+      <button id="openExportBtn" class="btn-ghost">Exportar .txt</button>
+    </div>
     <div id="historialList"></div>
   </section>
 
@@ -93,8 +96,54 @@
 
 </main>
 
+<!-- ---------------- EXPORTAR (bottom sheet) ---------------- -->
+<div id="exportOverlay" class="overlay" hidden></div>
+<div id="exportSheet" class="sheet" role="dialog" aria-label="Exportar historial" aria-hidden="true">
+  <div class="sheet-handle"></div>
+  <p class="panel-title">Exportar a .txt</p>
+
+  <div class="option-list" role="radiogroup" aria-label="Rango de fechas">
+    <label class="option-row">
+      <input type="radio" name="range" value="hoy" checked>
+      <span>Hoy</span>
+    </label>
+    <label class="option-row">
+      <input type="radio" name="range" value="semana-actual">
+      <span>Última semana</span>
+    </label>
+    <label class="option-row">
+      <input type="radio" name="range" value="semana-anterior">
+      <span>Semana anterior</span>
+    </label>
+    <label class="option-row">
+      <input type="radio" name="range" value="custom">
+      <span>Período específico</span>
+    </label>
+  </div>
+
+  <div id="customRangeFields" class="field-row" hidden>
+    <div class="field">
+      <label for="dateFrom">Desde</label>
+      <input type="date" id="dateFrom">
+    </div>
+    <div class="field">
+      <label for="dateTo">Hasta</label>
+      <input type="date" id="dateTo">
+    </div>
+  </div>
+
+  <p class="range-preview" id="rangePreview"></p>
+  <p class="field-hint" id="rangeFeedback"></p>
+
+  <div class="sheet-actions">
+    <button id="cancelExportBtn" class="btn-ghost">Cancelar</button>
+    <button id="confirmExportBtn" class="btn-primary" disabled>Exportar</button>
+  </div>
+</div>
+
 <script src="js/storage.js"></script>
 <script src="js/recorder.js"></script>
+<script src="js/export.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>
