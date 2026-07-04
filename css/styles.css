@@ -147,6 +147,18 @@ body{
 
 /* ---- view header (título + acción) ---- */
 .view-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom: 14px; }
+.text-link{
+  display:inline-block; color: var(--amber); font-size:13px;
+  text-decoration: underline; text-underline-offset:3px; margin-bottom:14px;
+}
+
+/* ---- prompt block (Instructivo) ---- */
+.prompt-block{
+  font-family: var(--mono); font-size:12.5px; line-height:1.6; white-space:pre-wrap;
+  word-break: break-word; background: var(--panel-2); border:1px solid var(--hairline);
+  border-radius:8px; padding:12px; margin:0 0 12px; color: var(--text);
+}
+textarea.prompt-block{ width:100%; min-height:280px; resize:vertical; }
 
 /* ---- botones ---- */
 .btn-primary{
