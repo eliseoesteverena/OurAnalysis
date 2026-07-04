@@ -74,21 +74,37 @@
   <section id="view-instructivo" class="view" hidden>
     <p class="panel-title">Instructivo</p>
 
-    <div class="panel">
+    <div class="intro-text">
       <p>Exportá tu historial (pestaña Historial → <strong>Exportar .txt</strong>) eligiendo el rango que quieras, por ejemplo la última semana. Ese archivo es tu registro literal: todo lo que dijiste, ordenado por día y hora.</p>
       <p>Después, adjuntá ese .txt a un asistente de IA (Claude, ChatGPT, Gemini, el que uses) junto con el prompt de abajo. La idea es conseguir una lectura objetiva de tu propia semana — patrones, decisiones concretas y aprendizajes que cuesta ver cuando te estás releyendo a vos mismo.</p>
       <p class="field-hint">Nada de esto sale de la app: vos decidís cuándo exportar, a qué asistente se lo mandás, y qué hacer con la respuesta.</p>
     </div>
 
     <div class="panel">
-      <p class="panel-title">Prompt sugerido</p>
+      <div class="prompt-header">
+        <p class="panel-title" style="margin:0;">Prompt sugerido</p>
+        <div class="prompt-header-actions">
+          <button id="copyPromptBtn" class="btn-ghost">Copiar</button>
+          <div class="menu-wrap">
+            <button id="promptMenuBtn" class="icon-btn" aria-haspopup="true" aria-expanded="false" aria-label="Más opciones">
+              <span class="kebab"><span></span><span></span><span></span></span>
+            </button>
+            <div id="promptMenu" class="dropdown-menu" hidden>
+              <button id="editPromptBtn" class="dropdown-item">Editar prompt</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <pre id="promptDisplay" class="prompt-block"></pre>
-      <textarea id="promptEdit" class="entry-textarea prompt-block" hidden></textarea>
-      <div class="entry-actions">
-        <button id="copyPromptBtn" class="btn-ghost">Copiar prompt</button>
-        <button id="editPromptBtn" class="btn-ghost">Editar prompt</button>
-        <button id="savePromptBtn" class="btn-ghost" hidden>Guardar cambios</button>
-        <button id="resetPromptBtn" class="btn-ghost btn-danger" hidden>Restaurar original</button>
+
+      <div id="promptEditWrap" hidden>
+        <textarea id="promptEdit" class="entry-textarea prompt-block"></textarea>
+        <div class="entry-actions">
+          <button id="savePromptBtn" class="btn-primary">Guardar cambios</button>
+          <button id="cancelPromptBtn" class="btn-ghost">Cancelar</button>
+        </div>
+        <button id="resetPromptBtn" class="text-link">Restaurar original</button>
       </div>
     </div>
   </section>

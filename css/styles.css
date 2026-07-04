@@ -150,15 +150,38 @@ body{
 .text-link{
   display:inline-block; color: var(--amber); font-size:13px;
   text-decoration: underline; text-underline-offset:3px; margin-bottom:14px;
+  border:none; background:none; padding:0; font-family: inherit; cursor:pointer;
 }
 
 /* ---- prompt block (Instructivo) ---- */
+.intro-text{ line-height:1.75; margin-bottom:22px; font-size:15px; }
+.intro-text p{ margin: 0 0 16px; }
+.intro-text p:last-child{ margin-bottom:0; }
+
+.prompt-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; gap:8px; }
+.prompt-header-actions{ display:flex; align-items:center; gap:6px; }
+
 .prompt-block{
-  font-family: var(--mono); font-size:12.5px; line-height:1.6; white-space:pre-wrap;
+  font-family: var(--mono); font-size:12.5px; line-height:1.75; white-space:pre-wrap;
   word-break: break-word; background: var(--panel-2); border:1px solid var(--hairline);
   border-radius:8px; padding:12px; margin:0 0 12px; color: var(--text);
 }
 textarea.prompt-block{ width:100%; min-height:280px; resize:vertical; }
+
+/* ---- menú desplegable (kebab) ---- */
+.menu-wrap{ position: relative; display:inline-flex; }
+.kebab{ display:flex; flex-direction:column; gap:3px; padding:4px; }
+.kebab span{ width:4px; height:4px; border-radius:50%; background: var(--text); }
+.dropdown-menu{
+  position:absolute; top: calc(100% + 6px); right:0; min-width:170px;
+  background: var(--panel-2); border:1px solid var(--hairline); border-radius:10px;
+  overflow:hidden; z-index:5; box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+}
+.dropdown-item{
+  display:block; width:100%; text-align:left; background:none; border:none;
+  color: var(--text); padding:12px 14px; font-size:14px; cursor:pointer;
+}
+.dropdown-item:active{ background: var(--panel); }
 
 /* ---- botones ---- */
 .btn-primary{
