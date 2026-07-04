@@ -1,10 +1,9 @@
 // Cloudflare Pages Function
 // Route: POST /api/transcribe-gemini
 //
-// Recibe una nota de voz y devuelve el CONTENIDO de una entrada de diario
-// de autoanálisis: un resumen breve y fiel, en tercera persona, de lo que
-// la persona expresó (hechos, decisiones, pensamientos, emociones).
-// No es una transcripción literal palabra por palabra.
+// Recibe una nota de voz y devuelve la TRANSCRIPCIÓN LITERAL de lo dicho,
+// palabra por palabra, en el mismo idioma y persona gramatical en que se
+// habló. No resume, no reformula, no traduce.
 //
 // La API key se lee del Secret env.GEMINI_API_KEY y nunca se expone al cliente.
 //
@@ -37,14 +36,15 @@ export async function onRequestPost(context) {
 
   const language = (form.get("language") || "es").toString();
 
-  const promptText = `Sos un asistente de journaling. Vas a escuchar una nota de voz en la que una persona habla libremente y en primera persona sobre su día, sus pensamientos o sus emociones, como si estuviera pensando en voz alta para sí misma.
+  const promptText = `Transcribí este audio de forma literal, palabra por palabra.
 
-Tu tarea es escribir el CONTENIDO de una entrada de diario de autoanálisis a partir de eso, seguido estas reglas:
-- Escribí en tercera persona (por ejemplo "El usuario comentó que...", "Se decidió...", "Notó que sentía...").
-- Sé fiel a lo dicho: no inventes ni interpretes de más lo que la persona no haya expresado.
-- Conservá los hechos, decisiones, pensamientos y emociones relevantes, incluso si hay varios temas en el mismo audio.
-- Podés usar más de un párrafo breve si se hablaron temas distintos, pero no uses encabezados, títulos, listas ni formato Markdown: solo texto plano en párrafos.
-- Escribí en el idioma con código ISO-639-1 "${language}", sin importar en qué idioma haya hablado la persona.
+Reglas estrictas:
+- Es una transcripción, NO un resumen ni una reformulación. No cambies palabras, no reordenes ideas, no completes frases que la persona dejó a medias.
+- No pases el contenido a tercera persona: si la persona habló en primera persona, la transcripción queda en primera persona, tal cual se dijo.
+- No corrijas gramática ni elimines muletillas ("eh", "este", "o sea", etc.), a menos que hagan el texto completamente ilegible.
+- Puntuá razonablemente (mayúsculas, comas, puntos) sólo para que se pueda leer, pero sin alterar el contenido ni el orden de lo dicho.
+- El audio probablemente esté hablado en el idioma con código ISO-639-1 "${language}"; usá ese dato como referencia para reconocer mejor las palabras, pero transcribí en el idioma que realmente se habló, sin traducir.
+- No agregues encabezados, títulos, comillas, ni ningún texto que no haya sido dicho en el audio.
 - Si el audio no tiene contenido entendible (silencio, ruido, etc.), respondé únicamente con: [Audio sin contenido reconocible]`;
 
   let base64Audio;
