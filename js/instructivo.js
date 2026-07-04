@@ -57,36 +57,19 @@ Por último, puntúa la semana del 0 al 10 según equilibrio, energía y avance.
 Explícame brevemente por qué le das esa nota y qué haría falta para subir un punto más la próxima.`;
 
   const displayEl = document.getElementById("promptDisplay");
+  const editWrap = document.getElementById("promptEditWrap");
   const editEl = document.getElementById("promptEdit");
   const copyBtn = document.getElementById("copyPromptBtn");
+  const menuBtn = document.getElementById("promptMenuBtn");
+  const menu = document.getElementById("promptMenu");
   const editBtn = document.getElementById("editPromptBtn");
   const saveBtn = document.getElementById("savePromptBtn");
+  const cancelBtn = document.getElementById("cancelPromptBtn");
   const resetBtn = document.getElementById("resetPromptBtn");
 
   function currentPrompt() {
     const settings = OA.getSettings();
     return settings.instructivoPrompt || DEFAULT_PROMPT;
-  }
-
-  function renderPrompt() {
-    displayEl.textContent = currentPrompt();
-  }
-
-  function enterEdit() {
-    editEl.value = currentPrompt();
-    displayEl.hidden = true;
-    editEl.hidden = false;
-    editBtn.hidden = true;
-    saveBtn.hidden = false;
-    resetBtn.hidden = false;
-  }
-
-  function exitEdit() {
-    displayEl.hidden = false;
-    editEl.hidden = true;
-    editBtn.hidden = false;
-    saveBtn.hidden = true;
-    resetBtn.hidden = true;
   }
 
   function flashButton(btn, tempLabel) {
@@ -96,7 +79,43 @@ Explícame brevemente por qué le das esa nota y qué haría falta para subir un
     setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1800);
   }
 
+  function renderPrompt() {
+    displayEl.textContent = currentPrompt();
+  }
+
+  function openMenu() {
+    menu.hidden = false;
+    menuBtn.setAttribute("aria-expanded", "true");
+  }
+  function closeMenu() {
+    menu.hidden = true;
+    menuBtn.setAttribute("aria-expanded", "false");
+  }
+  menuBtn.addEventListener("click", () => {
+    menu.hidden ? openMenu() : closeMenu();
+  });
+  document.addEventListener("click", e => {
+    if (!menu.hidden && !e.target.closest(".menu-wrap")) closeMenu();
+  });
+
+  function enterEdit() {
+    closeMenu();
+    editEl.value = currentPrompt();
+    displayEl.hidden = true;
+    editWrap.hidden = false;
+    copyBtn.hidden = true;
+    menuBtn.parentElement.hidden = true;
+  }
+
+  function exitEdit() {
+    displayEl.hidden = false;
+    editWrap.hidden = true;
+    copyBtn.hidden = false;
+    menuBtn.parentElement.hidden = false;
+  }
+
   editBtn.addEventListener("click", enterEdit);
+  cancelBtn.addEventListener("click", exitEdit);
 
   saveBtn.addEventListener("click", () => {
     const value = editEl.value.trim();
@@ -126,7 +145,7 @@ Explícame brevemente por qué le das esa nota y qué haría falta para subir un
       const sel = window.getSelection();
       sel.removeAllRanges();
       sel.addRange(range);
-      flashButton(copyBtn, "Seleccionado, copiá manualmente");
+      flashButton(copyBtn, "Seleccioná y copiá");
     }
   });
 
