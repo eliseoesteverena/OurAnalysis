@@ -47,16 +47,9 @@
       <div class="record-hint" id="hint">Tocá para grabar. Hablá como si pensaras en voz alta.</div>
     </div>
 
-    <div class="panel" id="lastEntryPanel" hidden>
-      <p class="panel-title">Última entrada</p>
-      <div class="entry-meta" id="lastEntryMeta"></div>
-      <div id="lastEntryContent" class="entry-content"></div>
-      <textarea id="lastEntryEdit" class="entry-textarea" hidden></textarea>
-      <div class="entry-actions">
-        <button id="editLastBtn" class="btn-ghost">Editar</button>
-        <button id="saveEditBtn" class="btn-ghost" hidden>Guardar cambios</button>
-        <button id="discardLastBtn" class="btn-ghost btn-danger">Descartar</button>
-      </div>
+    <div class="panel" id="queuePanel" hidden>
+      <p class="panel-title">Grabaciones de esta sesión</p>
+      <div id="queueList"></div>
     </div>
   </section>
 

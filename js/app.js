@@ -72,8 +72,9 @@
   document.getElementById("clearDataBtn").addEventListener("click", () => {
     if (confirm("¿Borrar todas las entradas guardadas en este dispositivo? Esta acción no se puede deshacer.")) {
       OA.clearAll();
-      lastEntry = null;
-      document.getElementById("lastEntryPanel").hidden = true;
+      queue = [];
+      queueList.innerHTML = "";
+      queuePanel.hidden = true;
       renderHistorial();
       alert("Datos borrados.");
     }
@@ -86,15 +87,16 @@
   const meterEl = document.getElementById("meter");
   const statusBox = document.getElementById("statusBox");
 
-  const lastEntryPanel = document.getElementById("lastEntryPanel");
-  const lastEntryMeta = document.getElementById("lastEntryMeta");
-  const lastEntryContent = document.getElementById("lastEntryContent");
-  const lastEntryEdit = document.getElementById("lastEntryEdit");
-  const editLastBtn = document.getElementById("editLastBtn");
-  const saveEditBtn = document.getElementById("saveEditBtn");
-  const discardLastBtn = document.getElementById("discardLastBtn");
+  const queuePanel = document.getElementById("queuePanel");
+  const queueList = document.getElementById("queueList");
 
-  let lastEntry = null;
+  // Cola en memoria: grabar y transcribir están desacoplados. Se puede
+  // seguir grabando aunque el audio anterior todavía se esté procesando.
+  // Se procesa en orden (FIFO) y de a uno, para respetar el orden
+  // cronológico de lo dicho y no saturar la API con requests simultáneos.
+  let queue = [];
+  let isProcessing = false;
+  let jobSeq = 0;
 
   const BAR_COUNT = 24;
   for (let i = 0; i < BAR_COUNT; i++) {
@@ -116,6 +118,9 @@
     return m + ":" + s;
   }
 
+  function pad2(n) { return n.toString().padStart(2, "0"); }
+  function clockLabel(d) { return pad2(d.getHours()) + ":" + pad2(d.getMinutes()); }
+
   function resetMeter() {
     bars.forEach(b => { b.style.height = "4px"; b.style.background = "var(--hairline)"; });
   }
@@ -132,6 +137,9 @@
 
   recordBtn.addEventListener("click", async () => {
     if (OARecorder.isRecording()) {
+      // deshabilitado brevemente sólo hasta que el blob termine de
+      // finalizarse (evita pisar el stream si se toca de nuevo muy rápido)
+      recordBtn.disabled = true;
       OARecorder.stop();
       return;
     }
@@ -150,92 +158,163 @@
     }
   });
 
-  async function handleRecordingStop(blob, mime, ext) {
+  function handleRecordingStop(blob, mime, ext) {
     recordBtn.classList.remove("recording");
+    recordBtn.disabled = false;
     timerEl.classList.remove("active");
     timerEl.classList.add("idle");
     timerEl.textContent = "00:00";
     resetMeter();
+    hintEl.textContent = "Tocá para grabar.";
 
     if (blob.size < 800) {
       setStatus("La grabación fue demasiado corta. Probá de nuevo.", "error");
-      hintEl.textContent = "Tocá para grabar.";
       return;
     }
 
-    hintEl.textContent = "Procesando…";
-    recordBtn.disabled = true;
-    setStatus("Analizando el audio…", "info");
+    setStatus("");
+    addJob(blob, ext);
+  }
 
-    const language = ensureLanguage();
-    const form = new FormData();
-    form.append("file", blob, "audio." + ext);
-    form.append("language", language);
+  // ---- cola de transcripción ----
 
-    try {
-      const res = await fetch("/api/transcribe-gemini", { method: "POST", body: form });
-      const data = await res.json().catch(() => null);
+  function addJob(blob, ext) {
+    const job = { id: "q" + (++jobSeq), blob, ext, recordedAt: new Date(), status: "queued", content: "", errorMsg: "" };
+    queue.push(job);
+    queuePanel.hidden = false;
+    renderQueueItem(job);
+    processQueue();
+  }
 
-      if (!res.ok) {
-        const msg = (data && (data.error?.message || data.error)) || ("Error HTTP " + res.status);
-        setStatus("No se pudo procesar el audio: " + msg, "error");
-        return;
-      }
+  function updateQueuePanelVisibility() {
+    queuePanel.hidden = queue.length === 0;
+  }
 
-      const content = (data && data.text) || "";
-      if (!content) {
-        setStatus("El audio no generó contenido para guardar.", "error");
-        return;
-      }
+  function escapeHtml(s) {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
 
-      lastEntry = OA.addEntry({ content, language });
-      showLastEntry(lastEntry);
-      setStatus("Entrada guardada.", "info");
-      setTimeout(() => setStatus(""), 2500);
-    } catch (err) {
-      setStatus("Error de red al procesar el audio: " + err.message, "error");
-    } finally {
-      hintEl.textContent = "Tocá para grabar.";
-      recordBtn.disabled = false;
+  function renderQueueItem(job) {
+    let el = document.getElementById(job.id);
+    if (!el) {
+      el = document.createElement("div");
+      el.id = job.id;
+      el.className = "queue-item";
+      queueList.prepend(el); // más reciente arriba
+    }
+
+    const clock = clockLabel(job.recordedAt);
+
+    if (job.status === "queued") {
+      el.innerHTML = `<div class="entry-meta">${clock} · <span class="q-status">En cola…</span></div>`;
+    } else if (job.status === "processing") {
+      el.innerHTML = `<div class="entry-meta">${clock} · <span class="q-status q-processing">Transcribiendo…</span></div>`;
+    } else if (job.status === "error") {
+      el.innerHTML = `
+        <div class="entry-meta">${clock} · <span class="q-status q-error">Error</span></div>
+        <p class="field-hint">${escapeHtml(job.errorMsg)}</p>
+        <div class="entry-actions">
+          <button class="btn-ghost" data-action="retry">Reintentar</button>
+          <button class="btn-ghost btn-danger" data-action="dismiss">Descartar</button>
+        </div>
+      `;
+      el.querySelector('[data-action="retry"]').addEventListener("click", () => {
+        job.status = "queued";
+        renderQueueItem(job);
+        processQueue();
+      });
+      el.querySelector('[data-action="dismiss"]').addEventListener("click", () => {
+        queue = queue.filter(j => j.id !== job.id);
+        el.remove();
+        updateQueuePanelVisibility();
+      });
+    } else if (job.status === "done") {
+      el.innerHTML = `
+        <div class="entry-meta">${clock}</div>
+        <div class="entry-content"></div>
+        <textarea class="entry-textarea" hidden></textarea>
+        <div class="entry-actions">
+          <button class="btn-ghost" data-action="edit">Editar</button>
+          <button class="btn-ghost" data-action="save" hidden>Guardar cambios</button>
+          <button class="btn-ghost btn-danger" data-action="discard">Descartar</button>
+        </div>
+      `;
+      const contentEl = el.querySelector(".entry-content");
+      const textarea = el.querySelector("textarea");
+      const editBtn = el.querySelector('[data-action="edit"]');
+      const saveBtn = el.querySelector('[data-action="save"]');
+      contentEl.textContent = job.content;
+
+      editBtn.addEventListener("click", () => {
+        textarea.value = job.content;
+        contentEl.hidden = true;
+        textarea.hidden = false;
+        editBtn.hidden = true;
+        saveBtn.hidden = false;
+      });
+      saveBtn.addEventListener("click", () => {
+        const updated = OA.updateEntry(job.entry.date, job.entry.id, textarea.value);
+        if (updated) {
+          job.entry = updated;
+          job.content = updated.content;
+          renderQueueItem(job);
+        }
+      });
+      el.querySelector('[data-action="discard"]').addEventListener("click", () => {
+        if (confirm("¿Descartar esta entrada?")) {
+          OA.deleteEntry(job.entry.date, job.entry.id);
+          queue = queue.filter(j => j.id !== job.id);
+          el.remove();
+          updateQueuePanelVisibility();
+        }
+      });
     }
   }
 
-  function showLastEntry(entry) {
-    lastEntryPanel.hidden = false;
-    lastEntryMeta.textContent = `${entry.date} · ${entry.time}`;
-    lastEntryContent.textContent = entry.content;
-    lastEntryContent.hidden = false;
-    lastEntryEdit.hidden = true;
-    saveEditBtn.hidden = true;
-    editLastBtn.hidden = false;
+  async function processQueue() {
+    if (isProcessing) return;
+    isProcessing = true;
+
+    let job;
+    while ((job = queue.find(j => j.status === "queued"))) {
+      job.status = "processing";
+      renderQueueItem(job);
+
+      const language = ensureLanguage();
+      const form = new FormData();
+      form.append("file", job.blob, "audio." + job.ext);
+      form.append("language", language);
+
+      try {
+        const res = await fetch("/api/transcribe-gemini", { method: "POST", body: form });
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          job.status = "error";
+          job.errorMsg = (data && (data.error?.message || data.error)) || ("Error HTTP " + res.status);
+        } else {
+          const content = (data && data.text) || "";
+          if (!content) {
+            job.status = "error";
+            job.errorMsg = "El audio no generó contenido para guardar.";
+          } else {
+            job.entry = OA.addEntry({ content, language });
+            job.content = content;
+            job.status = "done";
+          }
+        }
+      } catch (err) {
+        job.status = "error";
+        job.errorMsg = "Error de red: " + err.message;
+      }
+
+      renderQueueItem(job);
+    }
+
+    isProcessing = false;
   }
-
-  editLastBtn.addEventListener("click", () => {
-    if (!lastEntry) return;
-    lastEntryEdit.value = lastEntry.content;
-    lastEntryContent.hidden = true;
-    lastEntryEdit.hidden = false;
-    editLastBtn.hidden = true;
-    saveEditBtn.hidden = false;
-  });
-
-  saveEditBtn.addEventListener("click", () => {
-    if (!lastEntry) return;
-    const updated = OA.updateEntry(lastEntry.date, lastEntry.id, lastEntryEdit.value);
-    if (updated) {
-      lastEntry = updated;
-      showLastEntry(lastEntry);
-    }
-  });
-
-  discardLastBtn.addEventListener("click", () => {
-    if (!lastEntry) return;
-    if (confirm("¿Descartar esta entrada?")) {
-      OA.deleteEntry(lastEntry.date, lastEntry.id);
-      lastEntry = null;
-      lastEntryPanel.hidden = true;
-    }
-  });
 
   // ---------------- Historial ----------------
   const historialList = document.getElementById("historialList");

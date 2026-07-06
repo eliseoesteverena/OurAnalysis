@@ -129,6 +129,12 @@ body{
 }
 .btn-danger{ color: var(--bad); border-color: rgba(229,72,77,0.4); }
 
+/* ---- cola de transcripción (Home) ---- */
+.queue-item{ padding: 14px 0; border-bottom: 1px solid var(--hairline); }
+.queue-item:last-child{ border-bottom: none; }
+.q-status.q-processing{ color: var(--amber); }
+.q-status.q-error{ color: var(--bad); }
+
 /* ---- historial ---- */
 .day-group{ border:1px solid var(--hairline); border-radius:12px; margin-bottom:10px; overflow:hidden; background: var(--panel); }
 .day-summary{
